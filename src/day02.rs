@@ -2,6 +2,7 @@ use pest::Parser;
 use pest::iterators::Pair;
 use pest_derive::Parser;
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct RGBCount {
     pub red: u8,
     pub green: u8,
@@ -9,6 +10,10 @@ pub struct RGBCount {
 }
 
 impl RGBCount {
+    pub fn new(red: u8, green: u8, blue: u8) -> Self {
+        Self { red, green, blue }
+    }
+
     fn from_parse_rule(rgb_count: Pair<Rule>) -> Self {
         let mut red = 0;
         let mut green = 0;
@@ -34,6 +39,10 @@ impl RGBCount {
             }
         }
         RGBCount { red, green, blue }
+    }
+
+    pub fn power(self: &Self) -> u32 {
+        self.red as u32 * self.blue as u32 * self.green as u32
     }
 }
 
