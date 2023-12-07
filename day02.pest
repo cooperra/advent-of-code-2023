@@ -1,0 +1,7 @@
+gamelist = { (game ~ "\n"?)+ }
+game = { "Game " ~ num ~ ": " ~ drawlist }
+drawlist = { drawstats ~ ( "; " ~ drawstats )* }
+drawstats = { count ~ ( ", " ~ count )* }
+count = { num ~ " " ~ color }
+color = { ("red" | "green" | "blue") }
+num = { ('0'..'9')+ }
