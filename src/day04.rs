@@ -1,5 +1,5 @@
 use regex::Regex;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub fn day04(lines: impl Iterator<Item = impl AsRef<str>>) -> u32 {
     let mut sum = 0;
@@ -12,6 +12,23 @@ pub fn day04(lines: impl Iterator<Item = impl AsRef<str>>) -> u32 {
 fn score_for_line(line: &str) -> u32 {
     let card = Card::from_line(&line);
     card.get_score()
+}
+
+pub fn day04b(lines: impl Iterator<Item = impl AsRef<str>>) -> u32 {
+    let mut card_counts: HashMap<u32, u32> = HashMap::new();
+    for card in lines.map(|line| Card::from_line(line.as_ref())) {
+        let curr_card_count = card_counts.entry(card.id).or_insert(0);
+        *curr_card_count += 1;
+        let curr_card_count_ = *curr_card_count;
+        let matches = card.get_matches() as u32;
+        for other_card_id_offset in 1..matches + 1 {
+            let other_card_id: u32 = card.id + other_card_id_offset;
+            let other_card_count = card_counts.entry(other_card_id).or_insert(0);
+            *other_card_count += curr_card_count_;
+        }
+    }
+    let grand_total = card_counts.values().sum();
+    return grand_total;
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -116,5 +133,36 @@ mod test {
             let result = score_for_line(&line);
             assert_eq!(result, expected_score);
         }
+    }
+
+    #[test]
+    fn example_card_matches() {
+        let lines = vec![
+            ("Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53", 4),
+            ("Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19", 2),
+            ("Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1", 2),
+            ("Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83", 1),
+            ("Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36", 0),
+            ("Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11", 0),
+        ];
+
+        for (line, expected_score) in lines.into_iter() {
+            let result = Card::from_line(&line).get_matches();
+            assert_eq!(result, expected_score);
+        }
+    }
+
+    #[test]
+    fn example_b() {
+        let lines = vec![
+            "Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53",
+            "Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19",
+            "Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1",
+            "Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83",
+            "Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36",
+            "Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11",
+        ];
+        let result = day04b(&mut lines.into_iter());
+        assert_eq!(result, 30);
     }
 }
