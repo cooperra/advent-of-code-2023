@@ -1,5 +1,6 @@
+use core::ops::Range;
 use regex_macro::regex;
-use std::io::Error;
+use std::cmp::{max, min};
 
 type Num = u64;
 type Seeds = Vec<Num>;
@@ -30,6 +31,17 @@ impl Almanac {
             maps.push(map);
         }
         Self::new(seeds, maps)
+    }
+
+    pub fn seed_ranges(self: &Self) -> Vec<Range<Num>> {
+        self.seeds
+            .chunks_exact(2)
+            .map(|slice: &[u64]| {
+                let start = slice[0];
+                let end = start + slice[1];
+                start..end
+            })
+            .collect::<Vec<_>>()
     }
 }
 
@@ -73,6 +85,27 @@ impl AlmanacMap {
             .find_map(|entry| entry.map(num))
             .unwrap_or(num)
     }
+
+    pub fn map_ranges(self: &Self, ranges: Vec<Range<Num>>) -> Vec<Range<Num>> {
+        let partitioned_ranges: Vec<Range<Num>> = self.entries.iter().fold(
+            ranges,
+            |ranges: Vec<Range<Num>>, entry: &AlmanacMapEntry| -> Vec<Range<Num>> {
+                entry.partition_ranges(ranges)
+            },
+        );
+        for range in partitioned_ranges.iter() {
+            assert!(range.start < range.end);
+        }
+        let mapped_ranges: Vec<_> = partitioned_ranges
+            .into_iter()
+            .map(|r: Range<Num>| -> Range<Num> { self.map(r.start)..(self.map(r.end - 1) + 1) })
+            .collect();
+        println!("{:#?}", &self);
+        for range in mapped_ranges.iter() {
+            assert!(range.start < range.end);
+        }
+        return mapped_ranges;
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -103,12 +136,88 @@ impl AlmanacMapEntry {
     }
 
     pub fn map(self: &Self, num: Num) -> Option<Num> {
-        if (self.source_start..(self.source_start + self.range_len)).contains(&num) {
+        if self.source_range().contains(&num) {
             let delta = (self.dest_start as i64) - (self.source_start as i64);
             return Some((num as i64 + delta) as Num);
         } else {
             return None;
         }
+    }
+
+    fn source_range(self: &Self) -> Range<Num> {
+        self.source_start..(self.source_start + self.range_len)
+    }
+
+    fn partition_range(self: &Self, range: Range<Num>) -> Vec<Range<Num>> {
+        // Handle zero-length ranges
+        if range.start == range.end {
+            return Vec::new();
+        }
+        if self.range_len == 0 {
+            return vec![range];
+        }
+        let source_range = self.source_range();
+        if let Range { end: 0, .. } = source_range {
+            println!("source_range {:#?}", source_range);
+            panic!();
+        }
+        if range.start >= range.end {
+            println!("{:#?}", range);
+        }
+        assert!(range.start < range.end);
+        let mut range_below = None;
+        let mut range_inside = None;
+        let mut range_above = None;
+        println!("range {:#?} source_range {:#?}", range, source_range);
+        if range.start < source_range.start {
+            range_below = Some(range.start..min(range.end, self.source_start))
+        }
+        if source_range.contains(&range.start)
+            || source_range.contains(&(range.end - 1))
+            || range.contains(&source_range.start) && range.contains(&(source_range.end - 1))
+        {
+            range_inside =
+                Some(max(range.start, source_range.start)..min(range.end, source_range.end));
+        }
+        if source_range.end < range.end {
+            range_above = Some(max(range.start, source_range.end)..range.end);
+        }
+
+        if let Some(Range { end: 0, .. }) = range_below {
+            println!("below: {:#?}", range_below);
+            panic!();
+        }
+        if let Some(Range { end: 0, .. }) = range_inside {
+            println!("inside: {:#?}", range_inside);
+            panic!();
+        }
+        if let Some(Range { end: 0, .. }) = range_above {
+            println!("above: {:#?}", range_above);
+            panic!();
+        }
+
+        let out: Vec<_> = [range_below, range_inside, range_above]
+            .into_iter()
+            .flatten()
+            .collect();
+        println!("{:#?}", &out);
+        &out.iter().map(|r| assert!(r.start < r.end));
+        out
+    }
+
+    fn partition_ranges(self: &Self, ranges: Vec<Range<Num>>) -> Vec<Range<Num>> {
+        ranges
+            .into_iter()
+            .flat_map(|range: Range<Num>| {
+                let start = range.start;
+                let rs = self.partition_range(range);
+                rs.iter().fold(start, |pend, r| {
+                    assert_eq!(pend, r.start);
+                    r.end
+                });
+                return rs;
+            })
+            .collect()
     }
 }
 
@@ -192,6 +301,42 @@ pub mod test {
         let inputs: [Num; 4] = [79, 14, 55, 13];
         let expected: [Option<Num>; 4] = [Some(81), None, Some(57), None];
         let actual = inputs.map(|v| entry.map(v));
+        assert_eq!(&expected, &actual);
+    }
+
+    #[test]
+    fn test_almanac_seed_ranges() {
+        let almanac = Almanac::new(vec![10, 5], Vec::new());
+        let actual = almanac.seed_ranges();
+        let expected = vec![10..15];
+        assert_eq!(&expected, &actual);
+    }
+
+    #[test]
+    fn test_almanac_entry_partition_ranges() {
+        let entry = AlmanacMapEntry::new(52, 50, 48);
+        let input: Vec<Range<Num>> = vec![0..45, 45..55, 55..90, 90..100, 100..110];
+        let expected: Vec<Range<Num>> =
+            vec![0..45, 45..50, 50..55, 55..90, 90..98, 98..100, 100..110];
+        let actual = entry.partition_ranges(input);
+        assert_eq!(&expected, &actual);
+    }
+
+    #[test]
+    fn test_almanac_entry_partition_ranges_wide() {
+        let entry = AlmanacMapEntry::new(52, 50, 48);
+        let input: Vec<Range<Num>> = vec![0..110];
+        let expected: Vec<Range<Num>> = vec![0..50, 50..98, 98..110];
+        let actual = entry.partition_ranges(input);
+        assert_eq!(&expected, &actual);
+    }
+
+    #[test]
+    fn test_almanac_entry_partition_ranges_edge() {
+        let entry = AlmanacMapEntry::new(52, 50, 48);
+        let input: Vec<Range<Num>> = vec![99..99];
+        let expected: Vec<Range<Num>> = vec![];
+        let actual = entry.partition_ranges(input);
         assert_eq!(&expected, &actual);
     }
 }

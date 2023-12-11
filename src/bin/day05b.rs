@@ -12,38 +12,24 @@ fn main() {
 
 pub fn day05b(mut lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
     let almanac = Almanac::parse(&mut lines);
-    //println!("{:#?}", almanac);
-    //panic!();
-    let mut locations = Vec::<Num>::new();
-    let seed_ranges = almanac
-        .seeds
-        .chunks_exact(2)
-        .map(|slice: &[u64]| {
-            let start = slice[0];
-            let end = start + slice[1];
-            start..end
-        })
-        .collect::<Vec<_>>();
-    //println!("seed_ranges done");
-    //let seed_iters = seed_ranges
-    //    .iter()
-    //    .map(|r| r.into_iter())
-    //    .collect::<Vec<_>>();
-    let seeds = seed_ranges.into_iter().flatten();
-    //println!("seeds done");
-    for seed in seeds {
-        //println!("seed {}", seed);
-        let loc = almanac
-            .maps
-            .iter()
-            .fold(seed, |curr: Num, map| map.map(curr));
-        locations.push(loc);
-        //println!("pushed loc");
-    }
+
+    let seed_ranges = almanac.seed_ranges();
+    //for seed in seed_ranges.iter() {
+    //    assert!(seed.start < seed.end);
+    //}
+    //assert_eq!(seed_ranges.len() * 2, almanac.seeds.len());
+
+    let locations = almanac
+        .maps
+        .iter()
+        .fold(seed_ranges, |curr_ranges, map| map.map_ranges(curr_ranges));
 
     // Choose min location
-    //println!("locations {:#?}", &locations);
-    return locations.into_iter().reduce(Num::min).unwrap();
+    return locations
+        .into_iter()
+        .map(|r| r.start)
+        .reduce(Num::min)
+        .unwrap();
 }
 
 #[cfg(test)]
