@@ -70,7 +70,7 @@ fn get_possibility_count<'a>(
                 let remainder_start = attempt_start_idx + (**group_len as usize) + 1;
                 if remainder_start < fountains.len() {
                     // recursion
-                    counter += get_possibility_count(&fountains[remainder_start..], &mut groups)
+                    counter += get_possibility_count(&fountains[remainder_start..], groups)
                 }
             }
 
