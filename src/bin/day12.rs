@@ -53,6 +53,9 @@ fn get_possibility_count<'a>(
                 }
                 return true;
             })();
+            if !quota_reached {
+                continue; // TODO read over with more sleep
+            }
             // Not done yet. We need to ensure the next slot doesn't extend us beyond the quota!
             let attempt_is_valid = match fountains_iter.next() {
                 None => true, // End of input; valid
@@ -179,6 +182,7 @@ mod test {
         for (input_line, expected) in example_pairs.iter() {
             let input = parse_fountain_line(&input_line);
             let actual = get_possibility_count(&input.0, &mut input.1.iter());
+            println!(">> {}", &input_line);
             assert_eq!(actual, *expected);
         }
     }
