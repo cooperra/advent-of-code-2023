@@ -29,12 +29,14 @@ pub fn day08(mut lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
         .collect();
     loop {
         let Reverse((mut current_steps_taken, mut current_node)) = current_nodes.pop().unwrap();
-        current_steps_taken += counttoend(
-            &mut current_node,
+        let steps_taken;
+        (steps_taken, current_node) = counttoend(
+            current_node,
             directions.as_ref(),
             &graph,
-            current_steps_taken,
+            current_steps_taken % directions.as_ref().chars().count() as Num,
         );
+        current_steps_taken += steps_taken;
         current_nodes.push(Reverse((current_steps_taken, current_node)));
         if current_nodes.iter().all(|Reverse((this_steps, name))| {
             *this_steps == current_steps_taken && name.ends_with("Z")
@@ -45,22 +47,23 @@ pub fn day08(mut lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
 }
 
 fn counttoend<'a>(
-    current_node: &mut &'a Node,
+    start_node: &'a Node,
     directions: &str,
     graph: &'a Graph,
-    start_step: Num,
-) -> Num {
+    directions_offset: Num,
+) -> (Num, &'a Node) {
+    let mut current_node = start_node;
     let mut iter_count = 0;
     for instruction in directions
         .chars()
         .cycle()
-        .skip(start_step.try_into().unwrap())
+        .skip(directions_offset.try_into().unwrap())
     {
-        nextynext(current_node, &instruction, graph);
+        nextynext(&mut current_node, &instruction, graph);
         //dbg!(&current_nodes);
         iter_count += 1;
         if current_node.ends_with("Z") {
-            return iter_count;
+            return (iter_count, current_node);
         }
     }
     unreachable!();
