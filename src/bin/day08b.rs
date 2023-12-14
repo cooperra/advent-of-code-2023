@@ -19,25 +19,28 @@ pub fn day08(mut lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
     let directions = lines.next().expect("No input!");
     lines.next();
     let (graph, keystore) = parse_graph(lines);
-    let mut current_node = keystore
-        .get(&Rc::new("AAA".to_string()))
-        .expect("Starting point missing from graph");
+    let mut current_nodes: Vec<&Rc<String>> =
+        keystore.iter().filter(|name| name.ends_with("A")).collect();
+    dbg!(current_nodes.len());
+
     let mut iter_count = 0;
     for instruction in directions.as_ref().chars().cycle() {
-        current_node = (|current_node| {
-            let (left_opt, right_opt) = graph.get(current_node).unwrap();
-            match instruction.to_string().as_ref() {
+        for current_node in current_nodes.iter_mut() {
+            let (left_opt, right_opt) = graph.get(&Rc::clone(&current_node)).unwrap();
+            let next_node = match instruction.to_string().as_ref() {
                 "L" => left_opt,
                 "R" => right_opt,
                 _ => panic!(),
-            }
-        })(current_node);
+            };
+            *current_node = next_node;
+        }
+        dbg!(&current_nodes);
         iter_count += 1;
-        if current_node == &Rc::new("ZZZ".to_string()) {
+        if current_nodes.iter().all(|name| name.ends_with("Z")) {
             return iter_count;
         }
     }
-    iter_count
+    unreachable!();
 }
 
 fn parse_graph<S: AsRef<str>>(
