@@ -7,6 +7,7 @@ use HandType::*;
 
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Copy, Clone)]
 pub enum Card {
+    Joker,
     Two,
     Three,
     Four,
@@ -16,7 +17,7 @@ pub enum Card {
     Eight,
     Nine,
     Ten,
-    Jack,
+    //Jack,
     Queen,
     King,
     Ace,
@@ -39,7 +40,7 @@ impl Card {
             "A" => Some(Ace),
             "K" => Some(King),
             "Q" => Some(Queen),
-            "J" => Some(Jack),
+            //"J" => Some(Jack),
             "T" => Some(Ten),
             "9" => Some(Nine),
             "8" => Some(Eight),
@@ -49,6 +50,7 @@ impl Card {
             "4" => Some(Four),
             "3" => Some(Three),
             "2" => Some(Two),
+            "J" => Some(Joker),
             _ => None,
         }
     }
@@ -58,7 +60,7 @@ impl Card {
             Ace => "A",
             King => "K",
             Queen => "Q",
-            Jack => "J",
+            //Jack => "J",
             Ten => "T",
             Nine => "9",
             Eight => "8",
@@ -68,6 +70,7 @@ impl Card {
             Four => "4",
             Three => "3",
             Two => "2",
+            Joker => "J",
         }
     }
 }
@@ -103,7 +106,8 @@ impl Hand {
     pub fn get_card_counts(self: &Self) -> BTreeMap<Card, u8> {
         let mut card_counts = BTreeMap::new();
         for card_type in [
-            Ace, King, Queen, Jack, Ten, Nine, Eight, Seven, Six, Five, Four, Three, Two,
+            Ace, King, Queen, Joker, Ten, Nine, Eight, Seven, Six, Five, Four, Three,
+            Two, // Jack
         ] {
             let count = self.cards.iter().filter(|c| *c == &card_type).count() as u8;
             if count > 0 {
@@ -116,25 +120,35 @@ impl Hand {
 
     pub fn get_type(self: &Self) -> HandType {
         let card_counts = self.get_card_counts();
-        let mut most_numerous_card = None;
-        let mut second_most_numerous_card = None;
+        let mut most_numerous_card: Option<(u8, Card)> = None;
+        let mut second_most_numerous_card: Option<(u8, Card)> = None;
         //println!("{:#?} {:#?}", &self, card_counts);
         for (card, count) in card_counts.iter().rev() {
-            if let Some(current) = most_numerous_card {
-                if (count, card) > current {
+            if let Some((curr_count, curr_card)) = most_numerous_card {
+                if (count, card) > (&curr_count, &curr_card) {
                     second_most_numerous_card = most_numerous_card;
-                    most_numerous_card = Some((count, card));
-                } else if let Some(current) = second_most_numerous_card {
-                    if (count, card) > current {
-                        second_most_numerous_card = Some((count, card));
+                    most_numerous_card = Some((*count, *card));
+                } else if let Some((curr_count, curr_card)) = second_most_numerous_card {
+                    if (count, card) > (&curr_count, &curr_card) {
+                        second_most_numerous_card = Some((*count, *card));
                     }
                 } else {
-                    second_most_numerous_card = Some((count, card));
+                    second_most_numerous_card = Some((*count, *card));
                 }
             } else {
-                most_numerous_card = Some((count, card));
+                most_numerous_card = Some((*count, *card));
             }
         }
+        // Joker boosting
+        let num_jokers = *card_counts.get(&Joker).unwrap_or(&0);
+        if let Some((foo, Joker)) = most_numerous_card {
+            most_numerous_card = Some(second_most_numerous_card.unwrap_or((0, Joker)));
+            // Second card type doesn't matter once jokers are in play (it's actually not needed at all at this point for this problem)
+            // that is, we will never choose a full-house or two pair when we can choose 4kind or 3kind respectivly
+            second_most_numerous_card = Some((1, Joker));
+        }
+        most_numerous_card =
+            most_numerous_card.map(|(count, card_type)| (count + num_jokers, card_type));
 
         match most_numerous_card.unwrap() {
             (5, _) => FiveKind,
@@ -142,9 +156,7 @@ impl Hand {
             (3, _) => match second_most_numerous_card.unwrap() {
                 (2, _) => FullHouse,
                 (1, _) => ThreeKind,
-                _ => {
-                    unreachable!()
-                }
+                _ => unreachable!(),
             },
             (2, _) => match second_most_numerous_card.unwrap() {
                 (2, _) => TwoPair,
