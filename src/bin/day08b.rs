@@ -7,7 +7,7 @@ use std::{
 
 use regex_macro::regex;
 
-type Num = u32;
+type Num = u64;
 type Graph = HashMap<Node, (Node, Node)>;
 type Node = Rc<String>;
 
@@ -22,21 +22,25 @@ pub fn day08(mut lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
     let directions = lines.next().expect("No input!");
     lines.next();
     let (graph, keystore) = parse_graph(lines);
-    let mut current_nodes: BinaryHeap<Reverse<(Num, &Node)>> = keystore
+    let mut memoize_table: HashMap<(Num, Node), (Num, Node)> = HashMap::new();
+    let mut current_nodes: BinaryHeap<Reverse<(Num, Node)>> = keystore
         .iter()
-        .filter(|name| name.ends_with("AAA"))
-        .map(|name| Reverse((0, name)))
+        .filter(|name| name.ends_with("A"))
+        .map(|name| Reverse((0, Rc::clone(name))))
         .collect();
     loop {
         let Reverse((mut current_steps_taken, mut current_node)) = current_nodes.pop().unwrap();
-        let steps_taken;
-        (steps_taken, current_node) = counttoend(
+        let steps_offset = current_steps_taken % directions.as_ref().chars().count() as Num;
+
+        let steps_between_nodes;
+        (steps_between_nodes, current_node) = counttoend_memoized(
             current_node,
             directions.as_ref(),
             &graph,
-            current_steps_taken % directions.as_ref().chars().count() as Num,
+            steps_offset,
+            &mut memoize_table,
         );
-        current_steps_taken += steps_taken;
+        current_steps_taken += steps_between_nodes;
         current_nodes.push(Reverse((current_steps_taken, current_node)));
         if current_nodes.iter().all(|Reverse((this_steps, name))| {
             *this_steps == current_steps_taken && name.ends_with("Z")
@@ -44,6 +48,26 @@ pub fn day08(mut lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
             return current_steps_taken;
         }
     }
+}
+
+fn counttoend_memoized(
+    start_node: Node,
+    directions: &str,
+    graph: &Graph,
+    directions_offset: Num,
+    memoize_table: &mut HashMap<(Num, Node), (Num, Node)>,
+) -> (Num, Node) {
+    let func_input = (directions_offset, Rc::clone(&start_node));
+    if let Some((count, end_node)) = memoize_table.get(&func_input) {
+        //dbg!("memoize hit!");
+        //dbg!((&count, &end_node));
+        return (*count, Rc::clone(end_node));
+    }
+    dbg!("memoize_miss :(");
+    let (count, end_node) = counttoend(&start_node, directions.as_ref(), &graph, directions_offset);
+    memoize_table.insert(func_input, (count, Rc::clone(&end_node)));
+    dbg!(&memoize_table);
+    return (count, Rc::clone(end_node));
 }
 
 fn counttoend<'a>(
