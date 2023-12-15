@@ -67,6 +67,48 @@ fn counttoend_memoized(
     let (count, end_node) = counttoend(&start_node, directions.as_ref(), &graph, directions_offset);
     memoize_table.insert(func_input, (count, Rc::clone(&end_node)));
     dbg!(&memoize_table);
+    // Take the data at this point and solve by hand.
+    if memoize_table.keys().len() == 12 {
+        let inst_len = directions.chars().count() as Num;
+        for ((offset, start_name), (steps, dest_name)) in
+            memoize_table.iter().filter(|x| x.1 .1.ends_with("A"))
+        {
+            println!(
+                "({}) {} -> {} {}x",
+                offset,
+                start_name,
+                dest_name,
+                *steps as f64 / inst_len as f64,
+            );
+        }
+        let initial_offsets: HashMap<Rc<String>, Num> = HashMap::from_iter(
+            memoize_table
+                .iter()
+                .filter(|x| x.0 .1.ends_with("A"))
+                .map(|x| (Rc::clone(&x.1 .1), x.1 .0)),
+        );
+        for ((offset, start_name), (steps, dest_name)) in
+            memoize_table.iter().filter(|x| x.0 .1.ends_with("Z"))
+        {
+            println!(
+                "t = ({} + {}n) * 293",
+                //start_name,
+                //dest_name,
+                *initial_offsets.get(dest_name).unwrap() as f64 / 293_f64,
+                *steps as f64 / 293_f64
+            );
+        }
+        // All of the offsets are a prime number of iterations, and each are equal to their respective initial offset.
+        // We're just going to multiply them all together.
+        // There's also a prime number of instructions. It's painfully obvious.
+        let final_answer = initial_offsets
+            .values()
+            .map(|x| *x / inst_len)
+            .reduce(core::ops::Mul::mul)
+            .unwrap()
+            * inst_len;
+        println!("Answer: {}", final_answer);
+    }
     return (count, Rc::clone(end_node));
 }
 
