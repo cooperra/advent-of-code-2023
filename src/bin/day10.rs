@@ -5,7 +5,18 @@ use std::{
 };
 
 type Num = u32;
-type Grid = Vec<Row>;
+struct Grid {
+    rows: Vec<Row>,
+}
+impl Grid {
+    fn new() -> Self {
+        Grid { rows: Vec::new() }
+    }
+
+    fn get(self: &Self, coord: &Coord) -> &Option<Pipe> {
+        &self.rows[coord.0][coord.1]
+    }
+}
 type Row = Vec<Option<Pipe>>;
 #[derive(Hash, Eq, PartialEq, Copy, Clone)]
 enum Direction {
@@ -96,14 +107,14 @@ impl GridIterator for Cursor {
     /// Move from current pos to next pos, then face pipe's other exit
     fn next(self: &Self, grid: &Grid) -> Self {
         let (coord, dir) = self;
-        let (next_row, next_col) = *coord + *dir;
-        let maybe_next_pipe = &grid[next_row][next_col];
+        let next_coord = *coord + *dir;
+        let maybe_next_pipe = grid.get(&next_coord);
         if let Some(next_pipe) = maybe_next_pipe {
             let mut dirset = next_pipe.connections.clone();
             dirset.remove(&dir.flipped());
             assert_eq!(dirset.len(), 1);
             let next_dir = dirset.into_iter().next().unwrap();
-            return ((next_row, next_col), next_dir);
+            return (next_coord, next_dir);
         } else {
             // This can only happen if we get back to start, or the map is wrong, and that shouldn't happen in this program
             panic!();
@@ -113,21 +124,17 @@ impl GridIterator for Cursor {
 
 /// get cursors on start pos facing connected adjacent pipes
 fn get_initial_cursors(start_pos: &Coord, grid: &Grid) -> Vec<Cursor> {
-    let (start_row, start_col) = *start_pos;
-    //let cursors = Vec::new();
     let cursors_on_adjacent_connected_pipes = [Up, Down, Left, Right]
         .into_iter()
         .filter_map(|dir| {
-            let (row, col) = *start_pos + dir;
-            let ref maybe_next_pipe = grid[row][col];
+            let next_pos = *start_pos + dir;
+            let ref maybe_next_pipe = grid.get(&next_pos);
             maybe_next_pipe
                 .as_ref()
                 .filter(|p| p.connections.contains(&dir.flipped()))
-                .and(Some(((start_row, start_col), dir)))
+                .and(Some((*start_pos, dir)))
         })
         .collect();
-    //let starting_dirs = grid[start_row][start_col]
-    //cursors
     cursors_on_adjacent_connected_pipes
 }
 
@@ -136,7 +143,7 @@ fn parse_grid(lines: impl Iterator<Item = impl AsRef<str>>) -> (Grid, Coord) {
     let mut start_pos = None;
     for (row_idx, line) in lines.enumerate() {
         let (row, maybe_start_col) = parse_row(line.as_ref());
-        grid.push(row);
+        grid.rows.push(row);
         if let Some(col_idx) = maybe_start_col {
             start_pos = Some((row_idx, col_idx));
         }
