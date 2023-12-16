@@ -1,62 +1,15 @@
+use advent_of_code_2023::cursor_grid::{Direction::*, *};
 use std::{
     collections::HashSet,
     io::{self, BufRead},
-    ops::Add,
 };
 
 type Num = u32;
-struct Grid {
-    rows: Vec<Row>,
-}
-impl Grid {
-    fn new() -> Self {
-        Grid { rows: Vec::new() }
-    }
-
-    fn get(self: &Self, coord: &Coord) -> &Option<Pipe> {
-        &self.rows[coord.0][coord.1]
-    }
-}
-type Row = Vec<Option<Pipe>>;
-#[derive(Hash, Eq, PartialEq, Copy, Clone)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-impl Direction {
-    fn flipped(&self) -> Self {
-        match self {
-            Up => Down,
-            Left => Right,
-            Down => Up,
-            Right => Left,
-        }
-    }
-}
-
-impl Add<Direction> for Coord {
-    type Output = Self;
-    fn add(self: Self, dir: Direction) -> Self {
-        // Fixme: Can over and underflow.
-        match dir {
-            Up => (self.0 - 1, self.1),
-            Left => (self.0, self.1 - 1),
-            Down => (self.0 + 1, self.1),
-            Right => (self.0, self.1 + 1),
-        }
-    }
-}
-
-use Direction::*;
+type Node = Option<Pipe>;
+type Row = Vec<Node>;
 struct Pipe {
     connections: HashSet<Direction>,
 }
-type Coord = (usize, usize);
-type Cursor = (Coord, Direction);
-
 impl Pipe {
     fn from_char(c: &char) -> Option<Self> {
         let connections = match c {
@@ -99,31 +52,8 @@ fn day16(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
     }
 }
 
-trait GridIterator {
-    fn next(self: &Self, grid: &Grid) -> Self;
-}
-
-impl GridIterator for Cursor {
-    /// Move from current pos to next pos, then face pipe's other exit
-    fn next(self: &Self, grid: &Grid) -> Self {
-        let (coord, dir) = self;
-        let next_coord = *coord + *dir;
-        let maybe_next_pipe = grid.get(&next_coord);
-        if let Some(next_pipe) = maybe_next_pipe {
-            let mut dirset = next_pipe.connections.clone();
-            dirset.remove(&dir.flipped());
-            assert_eq!(dirset.len(), 1);
-            let next_dir = dirset.into_iter().next().unwrap();
-            return (next_coord, next_dir);
-        } else {
-            // This can only happen if we get back to start, or the map is wrong, and that shouldn't happen in this program
-            panic!();
-        }
-    }
-}
-
 /// get cursors on start pos facing connected adjacent pipes
-fn get_initial_cursors(start_pos: &Coord, grid: &Grid) -> Vec<Cursor> {
+fn get_initial_cursors(start_pos: &Coord, grid: &Grid<Node>) -> Vec<Cursor> {
     let cursors_on_adjacent_connected_pipes = [Up, Down, Left, Right]
         .into_iter()
         .filter_map(|dir| {
@@ -138,7 +68,7 @@ fn get_initial_cursors(start_pos: &Coord, grid: &Grid) -> Vec<Cursor> {
     cursors_on_adjacent_connected_pipes
 }
 
-fn parse_grid(lines: impl Iterator<Item = impl AsRef<str>>) -> (Grid, Coord) {
+fn parse_grid(lines: impl Iterator<Item = impl AsRef<str>>) -> (Grid<Node>, Coord) {
     let mut grid = Grid::new();
     let mut start_pos = None;
     for (row_idx, line) in lines.enumerate() {
@@ -166,4 +96,27 @@ fn parse_row(line: &str) -> (Row, Option<usize>) {
         row.push(maybe_pipe);
     }
     (row, maybe_start_col)
+}
+
+trait GridIterator<Node> {
+    fn next(self: &Self, grid: &Grid<Node>) -> Self;
+}
+
+impl GridIterator<Node> for Cursor {
+    /// Move from current pos to next pos, then face pipe's other exit
+    fn next(self: &Self, grid: &Grid<Node>) -> Self {
+        let (coord, dir) = self;
+        let next_coord = *coord + *dir;
+        let maybe_next_pipe = grid.get(&next_coord);
+        if let Some(next_pipe) = maybe_next_pipe {
+            let mut dirset = next_pipe.connections.clone();
+            dirset.remove(&dir.flipped());
+            assert_eq!(dirset.len(), 1);
+            let next_dir = dirset.into_iter().next().unwrap();
+            return (next_coord, next_dir);
+        } else {
+            // This can only happen if we get back to start, or the map is wrong, and that shouldn't happen in this program
+            panic!();
+        }
+    }
 }
