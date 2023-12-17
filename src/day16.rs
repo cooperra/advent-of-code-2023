@@ -1,9 +1,7 @@
 use crate::cursor_grid::{Direction::*, *};
-use std::{
-    collections::HashSet,
-    io::{self, BufRead},
-};
+use std::collections::HashSet;
 
+pub type Num = u32;
 pub type Node = Option<MirrorSplitter>;
 type Row = Vec<Node>;
 #[derive(Debug, Clone, Copy)]
@@ -98,4 +96,37 @@ pub fn parse_row(line: &str) -> Row {
         row.push(maybe_pipe);
     }
     row
+}
+
+pub fn count_energized_tiles(start_cursor: Cursor, grid: &Grid<Node>) -> Num {
+    let mut cursors = vec![start_cursor];
+    let mut energy_map: HashSet<Coord> = HashSet::new();
+    loop {
+        cursors = cursors
+            .into_iter()
+            .flat_map(|(pos, dir): Cursor| {
+                let node = grid.get(&pos);
+                let is_energized_splitter = match node {
+                    Some(MirrorSplitter::Splitter(_)) => energy_map.contains(&pos),
+                    _ => false,
+                };
+                energy_map.insert(pos);
+                if is_energized_splitter {
+                    vec![]
+                } else {
+                    next_cursors(&(pos, dir), node)
+                }
+            })
+            .filter(|cursor| grid.is_within_bounds(&cursor.0))
+            .collect();
+        if cursors.is_empty() {
+            break;
+        }
+    }
+    return energy_map.len() as Num;
+}
+
+fn next_cursors(cursor: &Cursor, node: &Node) -> Vec<Cursor> {
+    let next_dirs = route_light(*node, cursor.1);
+    next_dirs.iter().map(|d| (cursor.0 + *d, *d)).collect()
 }
