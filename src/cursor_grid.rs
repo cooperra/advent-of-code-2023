@@ -9,7 +9,13 @@ impl<Node> Grid<Node> {
     }
 
     pub fn get(self: &Self, coord: &Coord) -> &Node {
-        &self.rows[coord.0][coord.1]
+        assert!(self.is_within_bounds(&coord));
+        &self.rows[coord.0 as usize][coord.1 as usize]
+    }
+
+    pub fn is_within_bounds(&self, coord: &Coord) -> bool {
+        (0..self.rows.len() as i32).contains(&coord.0)
+            && (0..self.rows[0].len() as i32).contains(&coord.1)
     }
 }
 #[derive(Hash, Eq, PartialEq, Copy, Clone)]
@@ -45,5 +51,5 @@ impl Add<Direction> for Coord {
 }
 
 use Direction::*;
-pub type Coord = (usize, usize);
+pub type Coord = (i32, i32);
 pub type Cursor = (Coord, Direction);

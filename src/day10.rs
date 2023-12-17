@@ -49,7 +49,7 @@ pub fn parse_grid(lines: impl Iterator<Item = impl AsRef<str>>) -> (Grid<Node>, 
         let (row, maybe_start_col) = parse_row(line.as_ref());
         grid.rows.push(row);
         if let Some(col_idx) = maybe_start_col {
-            start_pos = Some((row_idx, col_idx));
+            start_pos = Some((row_idx as i32, col_idx as i32));
         }
     }
     (grid, start_pos.expect("No start pos"))
