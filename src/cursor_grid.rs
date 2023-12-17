@@ -18,7 +18,7 @@ impl<Node> Grid<Node> {
             && (0..self.rows[0].len() as i32).contains(&coord.1)
     }
 }
-#[derive(Hash, Eq, PartialEq, Copy, Clone)]
+#[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Direction {
     Up,
     Down,
