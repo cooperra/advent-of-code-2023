@@ -1,4 +1,5 @@
 use advent_of_code_2023::cursor_grid::*;
+use advent_of_code_2023::linked_list::LinkedList;
 use std::{
     cmp::Reverse,
     collections::BinaryHeap,
@@ -7,7 +8,7 @@ use std::{
 
 type Num = u32;
 #[derive(PartialEq, Eq)]
-struct HeapEntry(u32, u32, Direction, u8, Vec<Coord>);
+struct HeapEntry(u32, u32, Direction, u8, LinkedList<Coord>);
 
 impl Ord for HeapEntry {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -38,18 +39,18 @@ fn day17(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
     let start_pos = (0, 0);
     let dest_pos = (grid.rows.len() as i32 - 1, grid.rows[0].len() as i32);
     let mut candidate_paths: BinaryHeap<Reverse<HeapEntry>> = [Reverse(HeapEntry(
-        manhattan(start_pos, dest_pos), // heuristic
-        0,                              // path_cost
-        Direction::Right,               // current_direction
-        0,                              // direction_repeats
-        vec![start_pos],                // path_nodes
+        manhattan(start_pos, dest_pos),    // heuristic
+        0,                                 // path_cost
+        Direction::Right,                  // current_direction
+        0,                                 // direction_repeats
+        [start_pos].into_iter().collect(), // path_nodes
     ))]
     .into_iter()
     .collect();
     loop {
         let Reverse(HeapEntry(_, path_cost, current_direction, direction_repeats, path_nodes)) =
             candidate_paths.pop().unwrap();
-        let current_pos = path_nodes.last().unwrap();
+        let current_pos = path_nodes.head().unwrap();
         if *current_pos == dest_pos {
             return path_cost;
         }
@@ -69,8 +70,7 @@ fn day17(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
             } else {
                 new_repeats = 1;
             }
-            let mut path_append = path_nodes.clone();
-            path_append.push(pos);
+            let path_append = path_nodes.push(pos);
             return Some(Reverse(HeapEntry(
                 path_cost + manhattan(pos, dest_pos),
                 path_cost + *grid.get(&pos) as u32,

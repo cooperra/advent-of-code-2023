@@ -7,3 +7,4 @@ pub mod day15;
 pub mod day16;
 
 pub mod cursor_grid;
+pub mod linked_list;
