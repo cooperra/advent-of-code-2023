@@ -1,8 +1,5 @@
 use crate::cursor_grid::{Direction::*, *};
-use std::{
-    collections::HashSet,
-    io::{self, BufRead},
-};
+use std::collections::HashSet;
 
 type Node = Option<Pipe>;
 type Row = Vec<Node>;
@@ -28,31 +25,55 @@ impl Pipe {
 
 /// get cursors on start pos facing connected adjacent pipes
 pub fn get_initial_cursors(start_pos: &Coord, grid: &Grid<Node>) -> Vec<Cursor> {
-    let cursors_on_adjacent_connected_pipes = [Up, Down, Left, Right]
+    let start_pipe = grid.get(start_pos).as_ref().expect("No start pipe");
+    start_pipe
+        .connections
+        .iter()
+        .map(|dir| (*start_pos, *dir))
+        .collect()
+}
+
+fn infer_pipe_from_neighbors(pos: &Coord, grid: &Grid<Node>) -> Node {
+    let directions_to_connected_neighbor_pipes: HashSet<Direction> = [Up, Down, Left, Right]
         .into_iter()
-        .filter_map(|dir| {
-            let next_pos = *start_pos + dir;
-            let ref maybe_next_pipe = grid.get(&next_pos);
-            maybe_next_pipe
+        .filter(|dir| {
+            let neighbor_pos = *pos + *dir;
+            if !grid.is_within_bounds(&neighbor_pos) {
+                return false;
+            }
+            let maybe_neighbor_pipe = grid.get(&neighbor_pos);
+            maybe_neighbor_pipe
                 .as_ref()
                 .filter(|p| p.connections.contains(&dir.flipped()))
-                .and(Some((*start_pos, dir)))
+                .is_some()
         })
         .collect();
-    cursors_on_adjacent_connected_pipes
+    if directions_to_connected_neighbor_pipes.len() == 2 {
+        Some(Pipe {
+            connections: directions_to_connected_neighbor_pipes,
+        })
+    } else {
+        None
+    }
 }
 
 pub fn parse_grid(lines: impl Iterator<Item = impl AsRef<str>>) -> (Grid<Node>, Coord) {
     let mut grid = Grid::new();
-    let mut start_pos = None;
+    let mut maybe_start_pos = None;
     for (row_idx, line) in lines.enumerate() {
         let (row, maybe_start_col) = parse_row(line.as_ref());
         grid.rows.push(row);
         if let Some(col_idx) = maybe_start_col {
-            start_pos = Some((row_idx as i32, col_idx as i32));
+            maybe_start_pos = Some((row_idx as i32, col_idx as i32));
         }
     }
-    (grid, start_pos.expect("No start pos"))
+    let start_pos = maybe_start_pos.expect("No start pos");
+    // Start location actually represents a pipe connected to its neighbors.
+    // Lets insert it now.
+    let start_pipe = infer_pipe_from_neighbors(&start_pos, &grid)
+        .expect("Start pos isn't connected to exactly 2 pipes");
+    grid.rows[start_pos.0 as usize][start_pos.1 as usize] = Some(start_pipe);
+    (grid, start_pos)
 }
 
 pub fn parse_row(line: &str) -> (Row, Option<usize>) {
