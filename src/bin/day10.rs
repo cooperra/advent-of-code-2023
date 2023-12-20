@@ -12,18 +12,6 @@ fn main() {
 
 fn day10(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
     let (grid, start_pos) = parse_grid(lines);
-    let mut cursors = get_initial_cursors(&start_pos, &grid);
-    assert_eq!(2, cursors.len());
-    let mut iter_count = 0;
-    loop {
-        iter_count += 1;
-        cursors = cursors
-            .into_iter()
-            .map(|cursor: Cursor| cursor.next(&grid))
-            .collect();
-        let ref some_pos = cursors[1].0;
-        if cursors.iter().all(|cursor: &Cursor| some_pos == &cursor.0) {
-            return iter_count;
-        }
-    }
+    let pipe_loop_iter = PipeLoopIterator::new(start_pos, &grid);
+    pipe_loop_iter.count() as Num / 2
 }

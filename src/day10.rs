@@ -93,25 +93,43 @@ pub fn parse_row(line: &str) -> (Row, Option<usize>) {
     (row, maybe_start_col)
 }
 
-struct PipeLoopIterator<'a> {
+pub struct PipeLoopIterator<'a> {
     start: Coord,
-    current_cursor: Cursor,
+    current_cursor: Option<Cursor>,
     grid: &'a Grid<Node>,
+}
+
+impl<'a> PipeLoopIterator<'a> {
+    pub fn new(start: Coord, grid: &'a Grid<Node>) -> Self {
+        let start_direction = grid
+            .get(&start)
+            .as_ref()
+            .map(|pipe| *pipe.connections.iter().next().unwrap());
+        let current_cursor = start_direction.map(|dir| (start, dir));
+        Self {
+            start,
+            current_cursor,
+            grid,
+        }
+    }
 }
 
 impl<'a> Iterator for PipeLoopIterator<'a> {
     type Item = (Coord, &'a Pipe);
     fn next(&mut self) -> Option<Self::Item> {
-        let next_cursor = self.current_cursor.next(&self.grid);
-        let (next_pos, _) = &next_cursor;
-        if *next_pos == self.start {
-            None
-        } else {
-            let next_pipe = self.grid.get(&next_pos).as_ref().unwrap();
-            let result = (*next_pos, next_pipe);
-            self.current_cursor = next_cursor;
-            return Some(result);
+        if self.current_cursor.is_none() {
+            return None;
         }
+        let (pos, _) = self.current_cursor.unwrap();
+        let pipe = self.grid.get(&pos).as_ref();
+        let result = pipe.map(|p| (pos, p));
+        let next_cursor = self
+            .current_cursor
+            .map(|c| c.next(&self.grid))
+            // When next is start, we've completed the loop.
+            .filter(|c| c.0 != self.start);
+        self.current_cursor = next_cursor;
+        return result;
     }
 }
 
