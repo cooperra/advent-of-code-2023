@@ -93,6 +93,28 @@ pub fn parse_row(line: &str) -> (Row, Option<usize>) {
     (row, maybe_start_col)
 }
 
+struct PipeLoopIterator<'a> {
+    start: Coord,
+    current_cursor: Cursor,
+    grid: &'a Grid<Node>,
+}
+
+impl<'a> Iterator for PipeLoopIterator<'a> {
+    type Item = (Coord, &'a Pipe);
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_cursor = self.current_cursor.next(&self.grid);
+        let (next_pos, _) = &next_cursor;
+        if *next_pos == self.start {
+            None
+        } else {
+            let next_pipe = self.grid.get(&next_pos).as_ref().unwrap();
+            let result = (*next_pos, next_pipe);
+            self.current_cursor = next_cursor;
+            return Some(result);
+        }
+    }
+}
+
 pub trait GridIterator<Node> {
     fn next(self: &Self, grid: &Grid<Node>) -> Self;
 }
