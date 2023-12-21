@@ -4,7 +4,7 @@ use std::collections::HashSet;
 type Node = Option<Pipe>;
 type Row = Vec<Node>;
 pub struct Pipe {
-    connections: HashSet<Direction>,
+    pub connections: HashSet<Direction>,
 }
 impl Pipe {
     pub fn from_char(c: &char) -> Option<Self> {

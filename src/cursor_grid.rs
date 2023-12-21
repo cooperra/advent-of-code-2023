@@ -18,6 +18,16 @@ impl<Node> Grid<Node> {
             && (0..self.rows[0].len() as i32).contains(&coord.1)
     }
 
+    pub fn set(&mut self, coord: Coord, item: Node) {
+        assert!(self.is_within_bounds(coord));
+        self.rows[coord.0 as usize][coord.1 as usize] = item;
+    }
+
+    pub fn iter<'a>(&'a self) -> std::iter::Flatten<std::slice::Iter<'a, Vec<Node>>> {
+        let result = self.rows.iter().flatten();
+        result
+    }
+
     pub fn valid_neighbor_cursors<'a>(&'a self, pos: Coord) -> impl Iterator<Item = Cursor> + 'a {
         neighbor_cursors(pos).filter(|(pos, _)| self.is_within_bounds(*pos))
     }
