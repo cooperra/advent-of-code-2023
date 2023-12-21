@@ -8,12 +8,12 @@ impl<Node> Grid<Node> {
         Self { rows: Vec::new() }
     }
 
-    pub fn get(self: &Self, coord: &Coord) -> &Node {
-        assert!(self.is_within_bounds(&coord));
+    pub fn get(self: &Self, coord: Coord) -> &Node {
+        assert!(self.is_within_bounds(coord));
         &self.rows[coord.0 as usize][coord.1 as usize]
     }
 
-    pub fn is_within_bounds(&self, coord: &Coord) -> bool {
+    pub fn is_within_bounds(&self, coord: Coord) -> bool {
         (0..self.rows.len() as i32).contains(&coord.0)
             && (0..self.rows[0].len() as i32).contains(&coord.1)
     }

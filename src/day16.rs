@@ -105,7 +105,7 @@ pub fn count_energized_tiles(start_cursor: Cursor, grid: &Grid<Node>) -> Num {
         cursors = cursors
             .into_iter()
             .flat_map(|(pos, dir): Cursor| {
-                let node = grid.get(&pos);
+                let node = grid.get(pos);
                 let is_energized_splitter = match node {
                     Some(MirrorSplitter::Splitter(_)) => energy_map.contains(&pos),
                     _ => false,
@@ -117,7 +117,7 @@ pub fn count_energized_tiles(start_cursor: Cursor, grid: &Grid<Node>) -> Num {
                     next_cursors(&(pos, dir), node)
                 }
             })
-            .filter(|cursor| grid.is_within_bounds(&cursor.0))
+            .filter(|cursor| grid.is_within_bounds(cursor.0))
             .collect();
         if cursors.is_empty() {
             break;

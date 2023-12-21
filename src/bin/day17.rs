@@ -38,7 +38,7 @@ fn day17(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
     //     .unwrap()
     let start_pos = (0, 0);
     let dest_pos = (grid.rows.len() as i32 - 1, grid.rows[0].len() as i32 - 1);
-    assert!(&grid.is_within_bounds(&dest_pos));
+    assert!(&grid.is_within_bounds(dest_pos));
     let mut candidate_paths: BinaryHeap<Reverse<HeapEntry>> = [Reverse(HeapEntry(
         manhattan(start_pos, dest_pos),    // heuristic
         0,                                 // path_cost
@@ -66,7 +66,7 @@ fn day17(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
             return path_cost;
         }
         let nexts = neighbor_steps(*current_pos).filter_map(|(pos, dir)| {
-            if !grid.is_within_bounds(&pos) {
+            if !grid.is_within_bounds(pos) {
                 return None;
             }
             //if path_nodes.contains(&pos) {
@@ -86,7 +86,7 @@ fn day17(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
                 new_repeats = 1;
             }
             let path_append = path_nodes.push(pos);
-            let new_cost = path_cost + *grid.get(&pos) as u32;
+            let new_cost = path_cost + *grid.get(pos) as u32;
             return Some(Reverse(HeapEntry(
                 new_cost + heuristic(pos, dest_pos, &grid),
                 new_cost,
