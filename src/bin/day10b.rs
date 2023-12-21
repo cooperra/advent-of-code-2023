@@ -1,8 +1,5 @@
 use advent_of_code_2023::{cursor_grid::*, day10::*};
-use std::{
-    collections::BTreeSet,
-    io::{self, BufRead},
-};
+use std::io::{self, BufRead};
 
 type Num = u32;
 
@@ -30,7 +27,7 @@ fn day10b(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
         }
     }
     // Fill outside from top-left corner
-    paint_fill(&mut boundary_grid, (0, 0), InOutBoundary::Outside);
+    boundary_grid.paint_fill((0, 0), InOutBoundary::Outside);
     // Count Inside
     boundary_grid
         .rows
@@ -60,25 +57,4 @@ fn make_boundary_grid(width: usize, height: usize) -> Grid<InOutBoundary> {
         grid.rows.push(vec![InOutBoundary::Inside; 3 * width]);
     }
     return grid;
-}
-
-fn paint_fill<N>(grid: &mut Grid<N>, pos: Coord, new_color: N)
-where
-    N: Clone + Eq,
-{
-    let old_color = grid.get(pos).clone();
-    if new_color == old_color {
-        // Optimization: already painted; nothing to do.
-        return;
-    }
-    let mut frontier: BTreeSet<Coord> = BTreeSet::new();
-    frontier.insert(pos);
-
-    while let Some(current_pos) = frontier.pop_first() {
-        grid.set(current_pos, new_color.clone());
-        let neighbors_to_paint = grid
-            .neighbors(current_pos)
-            .filter(|neighbor_pos| *grid.get(*neighbor_pos) == old_color);
-        frontier.extend(neighbors_to_paint);
-    }
 }

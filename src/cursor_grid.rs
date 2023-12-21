@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::{collections::BTreeSet, ops::Add};
 
 pub struct Grid<Node> {
     pub rows: Vec<Vec<Node>>,
@@ -35,6 +35,27 @@ impl<Node> Grid<Node> {
     pub fn neighbors(&self, pos: Coord) -> impl Iterator<Item = Coord> + '_ {
         self.valid_neighbor_cursors(pos)
             .map(|(neighbor_pos, _)| neighbor_pos)
+    }
+
+    pub fn paint_fill(&mut self, pos: Coord, new_color: Node)
+    where
+        Node: Clone + Eq,
+    {
+        let old_color = self.get(pos).clone();
+        if new_color == old_color {
+            // Optimization: already painted; nothing to do.
+            return;
+        }
+        let mut frontier: BTreeSet<Coord> = BTreeSet::new();
+        frontier.insert(pos);
+
+        while let Some(current_pos) = frontier.pop_first() {
+            self.set(current_pos, new_color.clone());
+            let neighbors_to_paint = self
+                .neighbors(current_pos)
+                .filter(|neighbor_pos| *self.get(*neighbor_pos) == old_color);
+            frontier.extend(neighbors_to_paint);
+        }
     }
 }
 #[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
