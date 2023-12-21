@@ -34,14 +34,16 @@ pub fn get_initial_cursors(start_pos: Coord, grid: &Grid<Node>) -> Vec<Cursor> {
 }
 
 fn infer_pipe_from_neighbors(pos: Coord, grid: &Grid<Node>) -> Node {
-            let neighbor_pos = pos + *dir;
-            if !grid.is_within_bounds(neighbor_pos) {
-            let maybe_neighbor_pipe = grid.get(neighbor_pos);
+    let directions_to_connected_neighbor_pipes: HashSet<Direction> = grid
+        .valid_neighbor_cursors(pos)
+        .filter(|(neighbor_pos, dir)| {
+            let maybe_neighbor_pipe = grid.get(*neighbor_pos);
             maybe_neighbor_pipe
                 .as_ref()
                 .filter(|p| p.connections.contains(&dir.flipped()))
                 .is_some()
         })
+        .map(|(_, dir)| dir)
         .collect();
     if directions_to_connected_neighbor_pipes.len() == 2 {
         Some(Pipe {

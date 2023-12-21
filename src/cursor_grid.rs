@@ -17,6 +17,15 @@ impl<Node> Grid<Node> {
         (0..self.rows.len() as i32).contains(&coord.0)
             && (0..self.rows[0].len() as i32).contains(&coord.1)
     }
+
+    pub fn valid_neighbor_cursors<'a>(&'a self, pos: Coord) -> impl Iterator<Item = Cursor> + 'a {
+        neighbor_cursors(pos).filter(|(pos, _)| self.is_within_bounds(*pos))
+    }
+
+    pub fn neighbors(&self, pos: Coord) -> impl Iterator<Item = Coord> + '_ {
+        self.valid_neighbor_cursors(pos)
+            .map(|(neighbor_pos, _)| neighbor_pos)
+    }
 }
 #[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Direction {
@@ -53,3 +62,9 @@ impl Add<Direction> for Coord {
 use Direction::*;
 pub type Coord = (i32, i32);
 pub type Cursor = (Coord, Direction);
+
+pub fn neighbor_cursors(pos: Coord) -> impl Iterator<Item = Cursor> {
+    [Up, Down, Left, Right]
+        .into_iter()
+        .map(move |dir| ((pos + dir), dir))
+}
