@@ -99,3 +99,7 @@ pub fn neighbor_cursors(pos: Coord) -> impl Iterator<Item = Cursor> {
         .into_iter()
         .map(move |dir| ((pos + dir), dir))
 }
+
+pub fn manhattan(c1: Coord, c2: Coord) -> u32 {
+    (c1.0 - c2.0).abs() as u32 + (c1.1 - c2.1).abs() as u32
+}

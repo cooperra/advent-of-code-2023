@@ -122,10 +122,6 @@ fn neighbor_steps(pos: Coord) -> impl Iterator<Item = Cursor> {
     .into_iter()
 }
 
-fn manhattan(c1: Coord, c2: Coord) -> u32 {
-    (c1.0 - c2.0).abs() as u32 + (c1.1 - c2.1).abs() as u32
-}
-
 fn heuristic(pos: Coord, dest: Coord, grid: &Grid<u8>) -> u32 {
     let mut sum = 0;
     // min of each row between pos and dest inclusive
