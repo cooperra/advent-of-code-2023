@@ -28,6 +28,30 @@ impl<Node> Grid<Node> {
         result
     }
 
+    pub fn positions(&self) -> impl Iterator<Item = Coord> + '_ {
+        // Assumes all rows the same length
+        (0..self.rows.len()).flat_map(|row_idx| {
+            (0..self.rows[0].len()).map(move |col_idx| (row_idx as i32, col_idx as i32))
+        })
+    }
+
+    pub fn get_col(&self, idx: usize) -> Vec<&Node> {
+        self.rows.iter().map(|row| &row[idx]).collect()
+    }
+
+    pub fn col_iter(&self) -> impl Iterator<Item = Vec<&Node>> + '_ {
+        assert!(self.rows.len() > 0);
+        (0..self.rows[0].len())
+            .into_iter()
+            .map(|col_idx| self.get_col(col_idx))
+    }
+
+    pub fn insert_col(&mut self, idx: usize, col: impl IntoIterator<Item = Node>) {
+        for (row, item) in self.rows.iter_mut().zip(col.into_iter()) {
+            row.insert(idx, item);
+        }
+    }
+
     pub fn valid_neighbor_cursors<'a>(&'a self, pos: Coord) -> impl Iterator<Item = Cursor> + 'a {
         neighbor_cursors(pos).filter(|(pos, _)| self.is_within_bounds(*pos))
     }
