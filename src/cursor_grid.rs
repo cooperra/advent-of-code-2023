@@ -127,3 +127,7 @@ pub fn neighbor_cursors(pos: Coord) -> impl Iterator<Item = Cursor> {
 pub fn manhattan(c1: Coord, c2: Coord) -> u32 {
     (c1.0 - c2.0).abs() as u32 + (c1.1 - c2.1).abs() as u32
 }
+
+pub fn manhattan64(c1: (i64, i64), c2: (i64, i64)) -> i64 {
+    (c1.0 - c2.0).abs() + (c1.1 - c2.1).abs()
+}
