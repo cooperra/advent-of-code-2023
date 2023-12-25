@@ -1,11 +1,12 @@
+use memoize::memoize;
 use regex_macro::regex;
 use Fountain::*;
 
-pub type Num = u32;
+pub type Num = u64;
 pub type Fountains = Vec<Fountain>;
 pub type Groups = Vec<u8>;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Fountain {
     Good,
     Broken,
@@ -45,10 +46,11 @@ pub fn get_possibility_count(fountains: &Fountains, groups: &Groups) -> Num {
     // This extra fountain is needed to extend iteration because our window size is one larger to include a terminating "good" fountain.
     let mut fountains_extended: Fountains = fountains.clone();
     fountains_extended.push(Good);
-    get_possibility_count_helper(&fountains_extended, &groups)
+    get_possibility_count_helper(fountains_extended, groups.clone())
 }
 
-fn get_possibility_count_helper(fountains: &[Fountain], groups: &[u8]) -> Num {
+#[memoize]
+fn get_possibility_count_helper(fountains: Fountains, groups: Groups) -> Num {
     if groups.len() == 0 {
         // It's our duty to make sure there are no more broken fountains (that would require more groups declared)
         if fountains.iter().all(|fountain| *fountain != Broken) {
@@ -72,8 +74,10 @@ fn get_possibility_count_helper(fountains: &[Fountain], groups: &[u8]) -> Num {
 
         let (_, remainder_fountains) = fountains.split_at(idx + window_size);
         let (_, remainder_groups) = groups.split_at(1);
-        let remainder_permutations =
-            get_possibility_count_helper(remainder_fountains, remainder_groups);
+        let remainder_permutations = get_possibility_count_helper(
+            Vec::from(remainder_fountains),
+            Vec::from(remainder_groups),
+        );
 
         counter += window_permutations * remainder_permutations;
 
