@@ -4,7 +4,7 @@ pub type Num = u32;
 pub type Fountains = Vec<Fountain>;
 pub type Groups = Vec<u8>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Fountain {
     Good,
     Broken,
