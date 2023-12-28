@@ -1,15 +1,15 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use itertools::Itertools;
 
 type Num = u32;
 
-pub fn day13(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
+pub fn day13(lines: impl Iterator<Item = impl AsRef<str>>, accepted_error_count: u8) -> Num {
     let mut sum = 0;
     let mut lines2 = lines.peekable();
     while lines2.peek().is_some() {
         let chunk = collect_chunk(&mut lines2);
-        sum += process_chunk(chunk);
+        sum += process_chunk(chunk, accepted_error_count);
     }
     sum
 }
@@ -25,35 +25,37 @@ fn collect_chunk<S: AsRef<str>>(lines: &mut impl Iterator<Item = S>) -> Vec<S> {
     buffer
 }
 
-fn process_chunk(lines: Vec<impl AsRef<str>>) -> Num {
+fn process_chunk(lines: Vec<impl AsRef<str>>, accepted_error_count: u8) -> Num {
     let chars = lines
         .iter()
         .map(|x| x.as_ref().chars().collect_vec())
         .collect_vec();
-    100 * find_horizontal_reflection(&chars).unwrap_or(0)
-        + find_vertical_reflection(&chars).unwrap_or(0)
+    100 * find_horizontal_reflection(&chars, accepted_error_count).unwrap_or(0)
+        + find_vertical_reflection(&chars, accepted_error_count).unwrap_or(0)
 }
 
-fn find_horizontal_reflection(chars: &Vec<Vec<char>>) -> Option<Num> {
+fn find_horizontal_reflection(chars: &Vec<Vec<char>>, accepted_error_count: u8) -> Option<Num> {
     let transposed =
         zip_many(chars.iter().map(|x| x.iter().map(|x| x.clone())).collect()).collect_vec();
-    find_vertical_reflection(&transposed)
+    find_vertical_reflection(&transposed, accepted_error_count)
 }
 
-fn find_vertical_reflection(chars: &Vec<Vec<char>>) -> Option<Num> {
-    let reflections_per_row = chars.iter().map(|row| -> HashSet<usize> {
-        let starting_points = row
+fn find_vertical_reflection(chars: &Vec<Vec<char>>, accepted_error_count: u8) -> Option<Num> {
+    let reflections_per_row = chars.iter().map(|row| -> HashMap<usize, u8> {
+        let row_reflections = row
             .windows(2)
             .enumerate()
-            .filter_map(|(idx, pair)| (pair[0] == pair[1]).then_some(idx));
-        // Check for complete reflection (within this row only)
-        let row_reflections = starting_points
-            .filter(|idx| {
-                let mut left_idx = *idx;
-                let mut right_idx = *idx + 1;
+            // Check for complete reflection (within this row only)
+            .filter_map(|(idx, _)| {
+                let mut row_errors = 0;
+                let mut left_idx = idx;
+                let mut right_idx = idx + 1;
                 while right_idx < row.len() {
                     if row[left_idx] != row[right_idx] {
-                        return false;
+                        row_errors += 1;
+                    }
+                    if row_errors > accepted_error_count {
+                        return None;
                     }
                     if left_idx == 0 {
                         // Prevent underflow
@@ -62,16 +64,32 @@ fn find_vertical_reflection(chars: &Vec<Vec<char>>) -> Option<Num> {
                     left_idx -= 1;
                     right_idx += 1;
                 }
-                return true;
+                return Some((idx, row_errors));
             })
             .collect();
         row_reflections
     });
-    let reflection_set: HashSet<usize> = reflections_per_row
-        .reduce(|set1, set2| set1.intersection(&set2).map(|x| *x).collect())
+    let reflection_set = reflections_per_row
+        .reduce(|row1, row2| {
+            let accumulated_errors = row1
+                .into_iter()
+                .filter_map(|(idx, errors1)| {
+                    row2.get(&idx)
+                        .map(|errors2| {
+                            let errors = errors1 + *errors2;
+                            (idx, errors)
+                        })
+                        .filter(|(_, errors)| *errors <= accepted_error_count)
+                })
+                .collect();
+            accumulated_errors
+        })
         .unwrap_or_default();
 
-    reflection_set.iter().next().map(|x| (*x + 1) as Num)
+    reflection_set
+        .iter()
+        .filter_map(|(idx, errors)| (*errors == accepted_error_count).then_some((*idx + 1) as Num))
+        .next()
 }
 
 fn zip_many<I, O, T>(iters: Vec<I>) -> ZipMany<O, T>
@@ -114,26 +132,35 @@ where
 mod test {
     use super::*;
 
+    const EXAMPLE: &[&str] = &[
+        "#.##..##.",
+        "..#.##.#.",
+        "##......#",
+        "##......#",
+        "..#.##.#.",
+        "..##..##.",
+        "#.#.##.#.",
+        "",
+        "#...##..#",
+        "#....#..#",
+        "..##..###",
+        "#####.##.",
+        "#####.##.",
+        "..##..###",
+        "#....#..#",
+    ];
+
     #[test]
-    fn example() {
-        let input = vec![
-            "#.##..##.",
-            "..#.##.#.",
-            "##......#",
-            "##......#",
-            "..#.##.#.",
-            "..##..##.",
-            "#.#.##.#.",
-            "",
-            "#...##..#",
-            "#....#..#",
-            "..##..###",
-            "#####.##.",
-            "#####.##.",
-            "..##..###",
-            "#....#..#",
-        ];
-        let result = day13(input.into_iter());
+    fn test_example() {
+        let input = EXAMPLE;
+        let result = day13(input.into_iter(), 0);
         assert_eq!(result, 405);
+    }
+
+    #[test]
+    fn test_example_b() {
+        let input = EXAMPLE;
+        let result = day13(input.into_iter(), 1);
+        assert_eq!(result, 400);
     }
 }

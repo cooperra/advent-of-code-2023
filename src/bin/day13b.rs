@@ -4,6 +4,6 @@ use std::io::{self, BufRead};
 fn main() {
     let stdin = io::stdin();
     let lines = stdin.lock().lines().map(|l| l.expect("IO Error"));
-    let result = day13(lines, 0);
+    let result = day13(lines, 1);
     println!("{}", result);
 }
