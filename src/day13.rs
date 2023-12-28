@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 
+use crate::zip_many::zip_many;
+
 type Num = u32;
 
 pub fn day13(lines: impl Iterator<Item = impl AsRef<str>>, accepted_error_count: u8) -> Num {
@@ -35,8 +37,7 @@ fn process_chunk(lines: Vec<impl AsRef<str>>, accepted_error_count: u8) -> Num {
 }
 
 fn find_horizontal_reflection(chars: &Vec<Vec<char>>, accepted_error_count: u8) -> Option<Num> {
-    let transposed =
-        zip_many(chars.iter().map(|x| x.iter().map(|x| x.clone())).collect()).collect_vec();
+    let transposed = zip_many(chars.iter().map(|x| x.iter().map(|x| x.clone()))).collect_vec();
     find_vertical_reflection(&transposed, accepted_error_count)
 }
 
@@ -90,42 +91,6 @@ fn find_vertical_reflection(chars: &Vec<Vec<char>>, accepted_error_count: u8) ->
         .iter()
         .filter_map(|(idx, errors)| (*errors == accepted_error_count).then_some((*idx + 1) as Num))
         .next()
-}
-
-fn zip_many<I, O, T>(iters: Vec<I>) -> ZipMany<O, T>
-where
-    I: IntoIterator<Item = T, IntoIter = O>,
-    O: Iterator<Item = T>,
-{
-    ZipMany {
-        iters: iters.into_iter().map(|item| item.into_iter()).collect(),
-    }
-}
-
-struct ZipMany<I, T>
-where
-    I: Iterator<Item = T>,
-{
-    iters: Vec<I>,
-}
-
-impl<I, T> Iterator for ZipMany<I, T>
-where
-    I: Iterator<Item = T>,
-{
-    type Item = Vec<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut nexts = Vec::new();
-        for iter in self.iters.iter_mut() {
-            if let Some(next) = iter.next() {
-                nexts.push(next);
-            } else {
-                return None;
-            }
-        }
-        return Some(nexts);
-    }
 }
 
 #[cfg(test)]
