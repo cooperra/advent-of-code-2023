@@ -13,8 +13,23 @@ pub fn day14(lines: impl Iterator<Item = impl AsRef<str>>) -> Num {
 pub fn day14b(lines: impl Iterator<Item = impl AsRef<str>>, spin_cycles: Num) -> Num {
     let parsed = parse(lines);
     let mut rotated: Vec<Row> = parsed.collect();
-    for _ in 0..spin_cycles {
+    let mut first_seen_table: HashMap<Vec<Row>, usize> = HashMap::new();
+    let mut current_cycle = 0;
+    while current_cycle < spin_cycles {
+        // Fast-forward if we've seen this state before
+        if let Some(first_seen_i) = first_seen_table.get(&rotated) {
+            // loop_length calculation will be invalid after the first fast-forward, but it should have no effect anyway.
+            let loop_length = current_cycle - *first_seen_i;
+            // Fast forward
+            let remaining_cycles = spin_cycles - current_cycle;
+            let new_remaining_cycles = remaining_cycles % loop_length;
+            current_cycle = spin_cycles - new_remaining_cycles;
+        } else {
+            first_seen_table.insert(rotated.clone(), current_cycle);
+        }
+
         rotated = do_cycle(rotated);
+        current_cycle += 1;
     }
     weigh(rotated.into_iter())
 }
@@ -105,7 +120,7 @@ fn rotate_ccw(grid: Vec<Row>) -> impl Iterator<Item = Row> {
     zip_many(grid.into_iter().rev())
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Hash, Clone)]
 enum Rock {
     Round,
     Square,
@@ -210,7 +225,20 @@ mod test {
         assert_eq!(result, expected);
     }
 
-    //#[test]
+    #[test]
+    fn test_loop_detection() {
+        // After 1 cycle, right edge."
+        // After 2 cycles, bottom edge."
+        // After 3 cycles, right edge, completing the first lop.
+        // Loop length is 2.
+        // Even number of cycles, bottom edge.
+        // Odd number of cycles, right edge.
+        let input = &[".....", "...#.", ".#...", ".....", "..#O.", "....#"];
+        let result = day14b(input.into_iter(), 1000000000);
+        assert_eq!(result, 1);
+    }
+
+    #[test]
     fn test_example_b() {
         let input = EXAMPLE;
         let result = day14b(input.into_iter(), 1000000000);
